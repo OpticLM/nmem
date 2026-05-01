@@ -1,0 +1,51 @@
+{
+  "name": "@opticlm/nmem",
+  "version": "0.1.4",
+  "description": "(Partial) TypeScript SDK of Nowledge Mem, used in Optic.",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.mts",
+      "default": "./dist/schema.mjs"
+    }
+  },
+  "files": [
+    "dist/**/*.mjs",
+    "dist/**/*.d.mts",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "prepublishOnly": "npm run build"
+  },
+  "author": "EFLKumo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpticLM/nmem"
+  },
+  "peerDependencies": {
+    "zod": "^4.4.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.13",
+    "@types/node": "^25",
+    "tsdown": "^0.21.10",
+    "typescript": "^6",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

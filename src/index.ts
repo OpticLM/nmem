@@ -1,12 +1,24 @@
 import type z from "zod";
 import {
+  type AppendThreadMessagesPathParams,
+  type AppendThreadMessagesRequest,
+  type AppendThreadMessagesResponse,
+  AppendThreadMessagesResponseSchema,
   type CreateSpaceRequest,
   type CreateThreadRequest,
+  type DeleteThreadPathParams,
+  type DeleteThreadQueryParams,
+  type DeleteThreadResponse,
+  DeleteThreadResponseSchema,
   type DeleteThreadsRequest,
   type DeleteThreadsResponse,
   DeleteThreadsResponseSchema,
   type GetSpacesResponse,
   GetSpacesResponseSchema,
+  type ReconcileThreadTailPathParams,
+  type ReconcileThreadTailRequest,
+  type ReconcileThreadTailResponse,
+  ReconcileThreadTailResponseSchema,
 } from "./schema.js";
 
 export class CannotReachNMemError extends Error {
@@ -74,7 +86,7 @@ export class NMem {
 
   private async get<TSchema extends z.ZodType = z.ZodType>(
     path: string,
-    responseSchema: TSchema,
+    responseSchema?: TSchema,
   ): Promise<z.infer<TSchema>> {
     return await this.fetch("GET", path, undefined, responseSchema);
   }
@@ -99,16 +111,77 @@ export class NMem {
     return await this.get("/spaces", GetSpacesResponseSchema);
   }
 
-  async createSpace(p: CreateSpaceRequest): Promise<GetSpacesResponse> {
-    return await this.post("/spaces", p, GetSpacesResponseSchema);
+  async createSpace(r: CreateSpaceRequest): Promise<GetSpacesResponse> {
+    return await this.post("/spaces", r, GetSpacesResponseSchema);
   }
 
-  async createThread(p: CreateThreadRequest): Promise<null> {
-    await this.post("/threads", p);
+  async _threadExists(thread_id: string): Promise<boolean> {
+    try {
+      await this.get(`/threads/${thread_id}`);
+      return true;
+    } catch (e) {
+      if (e instanceof CannotReachNMemError) {
+        if (e.response.status === 404) {
+          return false;
+        }
+      }
+
+      throw e;
+    }
+  }
+
+  async createThread(r: CreateThreadRequest): Promise<null> {
+    await this.post("/threads", r);
     return null;
   }
 
-  async deleteThreds(p: DeleteThreadsRequest): Promise<DeleteThreadsResponse> {
-    return await this.delete("/threads/bulk", p, DeleteThreadsResponseSchema);
+  async deleteThread(
+    path: DeleteThreadPathParams,
+    query: DeleteThreadQueryParams,
+  ): Promise<DeleteThreadResponse> {
+    const params = new URLSearchParams();
+    if (query.cascade_delete_memories !== undefined) {
+      params.append(
+        "cascade_delete_memories",
+        query.cascade_delete_memories ? "true" : "false",
+      );
+    }
+    if (query.space_id) {
+      params.append("space_id", query.space_id);
+    }
+
+    const paramsString = params.toString();
+    const url =
+      paramsString.length > 0
+        ? `/threads/${path.thread_id}?${paramsString}`
+        : `/threads/${path.thread_id}`;
+
+    return await this.delete(url, undefined, DeleteThreadResponseSchema);
+  }
+
+  async deleteThreds(r: DeleteThreadsRequest): Promise<DeleteThreadsResponse> {
+    return await this.delete("/threads/bulk", r, DeleteThreadsResponseSchema);
+  }
+
+  async appendThreadMessages(
+    path: AppendThreadMessagesPathParams,
+    r: AppendThreadMessagesRequest,
+  ): Promise<AppendThreadMessagesResponse> {
+    return await this.post(
+      `/threads/${path.thread_id}/append`,
+      r,
+      AppendThreadMessagesResponseSchema,
+    );
+  }
+
+  async reconcileThreadTail(
+    path: ReconcileThreadTailPathParams,
+    r: ReconcileThreadTailRequest,
+  ): Promise<ReconcileThreadTailResponse> {
+    return await this.post(
+      `/threads/${path.thread_id}/reconcile-tail`,
+      r,
+      ReconcileThreadTailResponseSchema,
+    );
   }
 }
